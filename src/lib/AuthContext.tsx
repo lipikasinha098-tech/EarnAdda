@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db } from './firebase';
-import { onAuthStateChanged, User, getRedirectResult } from 'firebase/auth';
+import { db } from './firebase';
 import { doc, onSnapshot, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { UserProfile } from '../types';
 
 interface AuthContextType {
-  user: User | null;
+  user: { uid: string } | null;
   profile: UserProfile | null;
   loading: boolean;
 }
@@ -13,83 +12,59 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({ user: null, profile: null, loading: true });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ uid: string } | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Process any returning redirect result
-    const processRedirect = async () => {
+    const initializeUser = async () => {
       try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          const u = result.user;
-          const userRef = doc(db, 'users', u.uid);
-          const userSnap = await getDoc(userRef);
-          if (!userSnap.exists()) {
-            await setDoc(userRef, {
-               name: u.displayName || 'Anonymous',
-               email: u.email || '',
-               photoURL: u.photoURL || '',
-               balance: 0,
-               createdAt: serverTimestamp(),
-            });
-          }
+        let storedUid = localStorage.getItem('earnadda_uid');
+        if (!storedUid) {
+          storedUid = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          localStorage.setItem('earnadda_uid', storedUid);
+        }
+
+        setUser({ uid: storedUid });
+
+        const userRef = doc(db, 'users', storedUid);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+           // Fetch IP Address
+           let ipAddress = 'unknown';
+           try {
+             const ipRes = await fetch('https://api.ipify.org?format=json');
+             const ipData = await ipRes.json();
+             ipAddress = ipData.ip;
+           } catch (err) {
+             console.warn("Could not fetch IP address", err);
+           }
+
+           await setDoc(userRef, {
+             name: `User_${storedUid.slice(-4)}`,
+             email: '',
+             photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${storedUid}`,
+             balance: 0,
+             ipAddress: ipAddress,
+             createdAt: serverTimestamp(),
+           });
         }
       } catch (err) {
-        console.error("Failed to process redirect result", err);
+        console.error("Auto login failed:", err);
+      } finally {
+        setLoading(false);
       }
     };
-    processRedirect();
-
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        try {
-          // Auto sign-in anonymously
-          const { signInAnonymously } = await import('firebase/auth');
-          const result = await signInAnonymously(auth);
-          setUser(result.user);
-          
-          const u = result.user;
-          const userRef = doc(db, 'users', u.uid);
-          const userSnap = await getDoc(userRef);
-          
-          if (!userSnap.exists()) {
-             // Fetch IP Address
-             let ipAddress = 'unknown';
-             try {
-               const ipRes = await fetch('https://api.ipify.org?format=json');
-               const ipData = await ipRes.json();
-               ipAddress = ipData.ip;
-             } catch (err) {
-               console.warn("Could not fetch IP address", err);
-             }
-
-             await setDoc(userRef, {
-               name: 'Anonymous', // Default username
-               email: '',
-               photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.uid}`,
-               balance: 0,
-               ipAddress: ipAddress,
-               createdAt: serverTimestamp(),
-             });
-          }
-        } catch (err) {
-          console.error("Auto login failed:", err);
-          setLoading(false);
-        }
-      }
-    });
-    return () => unsubscribe();
+    
+    initializeUser();
   }, []);
 
   useEffect(() => {
     if (!user) return;
-    const unsubProfile = onSnapshot(doc(db, 'users', user.uid), (doc) => {
-      if (doc.exists()) {
-        setProfile({ id: doc.id, ...doc.data() } as UserProfile);
+    const unsubProfile = onSnapshot(doc(db, 'users', user.uid), (docRef) => {
+      if (docRef.exists()) {
+        setProfile({ id: docRef.id, ...docRef.data() } as UserProfile);
       }
       setLoading(false);
     });
