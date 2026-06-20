@@ -4,6 +4,7 @@ export interface UserProfile {
   email: string;
   photoURL: string;
   balance: number;
+  ipAddress?: string;
 }
 
 export interface UserActivity {
