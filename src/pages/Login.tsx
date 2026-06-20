@@ -9,9 +9,21 @@ import { RainingBackground } from '../components/RainingBackground';
 export const Login = () => {
   const { user } = useAuth();
 
+  const [error, setError] = React.useState<string | null>(null);
+
   if (user) {
     return <Navigate to="/" replace />;
   }
+
+  const handleLogin = async () => {
+    try {
+      setError(null);
+      await signInWithGoogle();
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || "Failed to sign in. Please try opening the app in a new tab if you are inside an iframe.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#020512] flex flex-col items-center justify-center relative overflow-hidden text-blue-50">
@@ -59,8 +71,17 @@ export const Login = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm font-medium text-center">
+            {error}
+            <div className="mt-2 text-xs text-blue-300">
+              Note: If login is popping up and closing instantly, it may be blocked by your browser's cross-site cookie settings in this preview iframe. Please explicitly open the preview in a new window using the "Open in new tab" icon at the top right of this panel.
+            </div>
+          </div>
+        )}
+
         <button 
-          onClick={signInWithGoogle}
+          onClick={handleLogin}
           className="w-full flex items-center justify-center gap-3 bg-white text-[#050A1F] hover:bg-blue-50 py-4 px-6 rounded-xl font-black transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)] tracking-wide"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
