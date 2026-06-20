@@ -46,6 +46,19 @@ export const Withdraw = () => {
         timestamp: serverTimestamp()
       });
 
+      const globalWithdrawalRef = collection(db, 'withdrawals');
+      await addDoc(globalWithdrawalRef, {
+        userId: user.uid,
+        userEmail: user.email,
+        userName: profile.name,
+        amount,
+        inr: amount / 5,
+        method,
+        address,
+        status: 'pending',
+        timestamp: serverTimestamp()
+      });
+
       setStatus('success');
       setMessage(`Successfully requested withdrawal of ${amount / 5} INR.`);
       setAddress('');

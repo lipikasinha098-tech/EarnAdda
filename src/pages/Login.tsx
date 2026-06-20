@@ -46,7 +46,7 @@ export const Login = () => {
             transition={{ delay: 0.2 }}
             className="text-4xl font-black mb-3 text-white tracking-tight drop-shadow-md"
           >
-            RewardQuest
+            Earn Adda
           </motion.h1>
           <p className="text-blue-300 text-sm font-medium">Log in to extract high-yield data points directly via secure tasks.</p>
         </div>

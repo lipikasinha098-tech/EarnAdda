@@ -32,31 +32,43 @@ async function startServer() {
 
       const fullPrompt = `A professional, high quality, appealing user profile avatar based on this description: ${prompt}. The image should be a flat or vector style avatar, clean background, suitable for a mobile app profile picture. Profile avatar aspect.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-image',
-        contents: {
-          parts: [
-            { text: fullPrompt },
-          ],
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: "1:1",
-            imageSize: "1K"
-          }
-        },
-      });
-
       let base64Image = null;
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-          base64Image = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
-          break;
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash-image',
+          contents: {
+            parts: [
+              { text: fullPrompt },
+            ],
+          },
+          config: {
+            imageConfig: {
+              aspectRatio: "1:1"
+            }
+          },
+        });
+
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if (part.inlineData) {
+            base64Image = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+            break;
+          }
         }
+      } catch (err: any) {
+        console.warn("AI generation failed, falling back to DiceBear", err.message);
+        // Fallback to deterministic avatar generation based on the prompt
+        const seed = encodeURIComponent(prompt.trim());
+        const dicebearUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+        
+        // Fetch to get base64 or just return URL
+        // It's an SVG URL, we can return the URL directly, but frontend expects imageUrl as base64 or url.
+        return res.json({ imageUrl: dicebearUrl });
       }
 
       if (!base64Image) {
-        return res.status(500).json({ error: "Failed to generate image" });
+        // Fallback if no image returned
+        const seed = encodeURIComponent(prompt.trim());
+        return res.json({ imageUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}` });
       }
 
       res.json({ imageUrl: base64Image });

@@ -30,7 +30,7 @@ export const Layout = () => {
               <Coins className="w-6 h-6" />
             </div>
             <h1 className="text-xl font-black tracking-tight text-white drop-shadow-md">
-              RewardQuest
+              Earn Adda
             </h1>
           </Link>
         </div>
@@ -78,6 +78,13 @@ export const Layout = () => {
               </p>
             </div>
           </div>
+          <Link 
+            to="/admin"
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-cyan-400 font-bold hover:bg-cyan-500/10 hover:text-cyan-300 rounded-lg transition-colors text-sm mb-1"
+          >
+            <UserIcon className="w-4 h-4" /> {/* Or Lock icon if imported, but using UserIcon from lucide-react */}
+            Admin Panel
+          </Link>
           <button 
             onClick={signOutUser}
             className="w-full flex items-center gap-2 px-4 py-2.5 text-red-400 font-bold hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors text-sm"
@@ -97,12 +104,17 @@ export const Layout = () => {
               <Coins className="w-5 h-5" />
             </div>
             <h1 className="font-black text-white">
-              RewardQuest
+              Earn Adda
             </h1>
           </Link>
-           <div className="flex items-center gap-2 bg-[#050A1F] px-3 py-1.5 rounded-full border border-blue-800/50 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]">
-              <Coins className="w-4 h-4 text-yellow-400" />
-              <span className="font-mono text-sm font-bold text-blue-100">{profile?.balance?.toLocaleString() || 0}</span>
+           <div className="flex items-center gap-4">
+             <Link to="/admin" className="text-cyan-400 p-1">
+               <UserIcon className="w-5 h-5" />
+             </Link>
+             <div className="flex items-center gap-2 bg-[#050A1F] px-3 py-1.5 rounded-full border border-blue-800/50 shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]">
+                <Coins className="w-4 h-4 text-yellow-400" />
+                <span className="font-mono text-sm font-bold text-blue-100">{profile?.balance?.toLocaleString() || 0}</span>
+             </div>
            </div>
         </header>
 

@@ -1,5 +1,5 @@
 {
-  "name": "RewardQuest Earnings App",
+  "name": "Earn Adda",
   "description": "A fully functional simulated rewards dashboard allowing users to spin a wheel, scratch virtual cards, and perform simulated ad/review tasks to earn coins. Complete with Firebase Authentication, persistent Firestore local data, and beautiful animations.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

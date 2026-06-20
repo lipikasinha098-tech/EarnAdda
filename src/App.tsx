@@ -11,6 +11,7 @@ import { Tasks } from './pages/Tasks';
 import { Leaderboard } from './pages/Leaderboard';
 import { Withdraw } from './pages/Withdraw';
 import { Profile } from './pages/Profile';
+import { Admin } from './pages/Admin';
 import { RainingBackground } from './components/RainingBackground';
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/withdraw" element={<Withdraw />} />
+              <Route path="/admin" element={<Admin />} />
             </Route>
           </Route>
         </Routes>
