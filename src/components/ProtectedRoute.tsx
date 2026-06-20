@@ -14,7 +14,13 @@ export const ProtectedRoute = () => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Due to auto-login, this should only briefly happen if auth flow fails.
+    // We can just render a loading or nothing, or redirect to root.
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#020512]">
+        <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return <Outlet />;

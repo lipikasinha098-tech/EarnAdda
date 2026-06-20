@@ -85,13 +85,6 @@ export const Layout = () => {
             <UserIcon className="w-4 h-4" /> {/* Or Lock icon if imported, but using UserIcon from lucide-react */}
             Admin Panel
           </Link>
-          <button 
-            onClick={signOutUser}
-            className="w-full flex items-center gap-2 px-4 py-2.5 text-red-400 font-bold hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
         </div>
       </aside>
 

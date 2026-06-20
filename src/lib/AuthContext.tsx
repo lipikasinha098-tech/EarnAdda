@@ -42,11 +42,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     processRedirect();
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser) {
-        setProfile(null);
-        setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        try {
+          // Auto sign-in anonymously
+          const { signInAnonymously } = await import('firebase/auth');
+          const result = await signInAnonymously(auth);
+          setUser(result.user);
+          
+          const u = result.user;
+          const userRef = doc(db, 'users', u.uid);
+          const userSnap = await getDoc(userRef);
+          
+          if (!userSnap.exists()) {
+             // Fetch IP Address
+             let ipAddress = 'unknown';
+             try {
+               const ipRes = await fetch('https://api.ipify.org?format=json');
+               const ipData = await ipRes.json();
+               ipAddress = ipData.ip;
+             } catch (err) {
+               console.warn("Could not fetch IP address", err);
+             }
+
+             await setDoc(userRef, {
+               name: 'Anonymous', // Default username
+               email: '',
+               photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.uid}`,
+               balance: 0,
+               ipAddress: ipAddress,
+               createdAt: serverTimestamp(),
+             });
+          }
+        } catch (err) {
+          console.error("Auto login failed:", err);
+          setLoading(false);
+        }
       }
     });
     return () => unsubscribe();
