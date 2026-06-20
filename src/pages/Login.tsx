@@ -1,33 +1,109 @@
-import React from 'react';
-import { signInWithGoogle } from '../lib/firebase';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import { motion } from 'motion/react';
-import { Coins, Sparkles, Target, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Coins, Sparkles, Target, Zap, Phone, KeyRound, Loader2, ArrowRight } from 'lucide-react';
 import { RainingBackground } from '../components/RainingBackground';
+import { auth, db } from '../lib/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
+declare global {
+  interface Window {
+    recaptchaVerifier: any;
+  }
+}
 
 export const Login = () => {
   const { user } = useAuth();
-
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   if (user) {
     return <Navigate to="/" replace />;
   }
 
-  const handleLogin = async () => {
+  const setupRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+      });
+    }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!phoneNumber || phoneNumber.length < 10) {
+      setError("Please enter a valid phone number with country code (e.g. +91...)");
+      return;
+    }
+
     try {
-      setError(null);
-      await signInWithGoogle();
+      setLoading(true);
+      setupRecaptcha();
+      
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+      
+      const appVerifier = window.recaptchaVerifier;
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(result);
+      setStep('OTP');
     } catch (e: any) {
-      console.error(e);
-      setError(e.message || "Failed to sign in. Please try opening the app in a new tab if you are inside an iframe.");
+      console.error("SMS Sending Error:", e);
+      setError(e.message || "Failed to send OTP. Make sure Phone Auth is enabled in Firebase.");
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp || otp.length < 6) {
+       setError("Please enter a valid 6-digit OTP");
+       return;
+    }
+    if (!confirmationResult) return;
+
+    try {
+      setLoading(true);
+      const result = await confirmationResult.confirm(otp);
+      
+      // Ensure user document exists
+      if (result.user) {
+        const u = result.user;
+        const userRef = doc(db, 'users', u.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+          await setDoc(userRef, {
+             name: u.phoneNumber || 'Anonymous',
+             email: '',
+             photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.uid}`,
+             balance: 0,
+             createdAt: serverTimestamp(),
+          });
+        }
+      }
+
+    } catch (e: any) {
+      console.error("OTP Verification Error:", e);
+      setError(e.message || "Invalid OTP entered.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#020512] flex flex-col items-center justify-center relative overflow-hidden text-blue-50">
-      
       <RainingBackground />
       {/* Background aesthetics */}
       <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600/20 rounded-full blur-[120px] pointer-events-none" />
@@ -51,7 +127,7 @@ export const Login = () => {
            </motion.div>
         </div>
 
-        <div className="text-center mt-8 mb-10">
+        <div className="text-center mt-8 mb-8">
           <motion.h1 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -63,35 +139,97 @@ export const Login = () => {
           <p className="text-blue-300 text-sm font-medium">Log in to extract high-yield data points directly via secure tasks.</p>
         </div>
 
-        <div className="space-y-4 mb-10">
-          <div className="flex flex-col gap-3">
-             <FeatureItem icon={Zap} text="Instant Data Integration" color="text-yellow-400" bg="bg-yellow-400/10 border border-yellow-400/20" />
-             <FeatureItem icon={Target} text="Decrypt Nodes for Points" color="text-cyan-400" bg="bg-cyan-400/10 border border-cyan-400/20" />
-             <FeatureItem icon={Sparkles} text="Accelerated INR Layouts" color="text-pink-400" bg="bg-pink-400/10 border border-pink-400/20" />
-          </div>
-        </div>
+        <div id="recaptcha-container"></div>
 
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm font-medium text-center">
             {error}
-            <div className="mt-2 text-xs text-blue-300">
-              Note: If login fails in an embedded preview, please explicitly open the preview in a new window using the "Open in new tab" icon.
-            </div>
           </div>
         )}
 
-        <button 
-          onClick={handleLogin}
-          className="w-full flex items-center justify-center gap-3 bg-white text-[#050A1F] hover:bg-blue-50 py-4 px-6 rounded-xl font-black transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.2)] tracking-wide"
-        >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          ACTIVATE WITH GOOGLE
-        </button>
+        <AnimatePresence mode="wait">
+          {step === 'PHONE' ? (
+            <motion.form 
+              key="phone-form"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              onSubmit={handleSendOtp}
+              className="space-y-6"
+            >
+              <div>
+                <label className="block text-xs font-bold text-blue-300 uppercase tracking-wider mb-2">Mobile Number</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400">
+                    <Phone className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type="tel"
+                    placeholder="+91 9999999999"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="w-full bg-[#050A1F] border border-blue-900/50 rounded-xl py-4 pl-12 pr-4 text-white font-medium focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-blue-900/50"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-500 hover:to-cyan-500 py-4 px-6 rounded-xl font-black transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(30,58,138,0.4)] tracking-wide disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <>
+                    SEND OTP <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </motion.form>
+          ) : (
+            <motion.form 
+              key="otp-form"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              onSubmit={handleVerifyOtp}
+              className="space-y-6"
+            >
+              <div>
+                <label className="block text-xs font-bold text-blue-300 uppercase tracking-wider mb-2">Enter OTP</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400">
+                    <KeyRound className="w-5 h-5" />
+                  </div>
+                  <input 
+                    type="text"
+                    maxLength={6}
+                    placeholder="123456"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    className="w-full bg-[#050A1F] border border-cyan-900/50 rounded-xl py-4 pl-12 pr-4 text-cyan-50 font-black tracking-widest text-xl focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-cyan-900/50"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => { setStep('PHONE'); setError(null); }}
+                  className="bg-[#050A1F] border border-blue-900/50 text-blue-400 p-4 rounded-xl hover:bg-blue-900/20 hover:text-blue-300 transition-all"
+                >
+                  Back
+                </button>
+                <button 
+                  type="submit"
+                  disabled={loading || otp.length !== 6}
+                  className="flex-1 flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 py-4 px-6 rounded-xl font-black transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.4)] tracking-wide disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VERIFY"}
+                </button>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       <div className="absolute bottom-6 text-blue-500/50 text-xs font-mono uppercase tracking-widest">
@@ -101,11 +239,3 @@ export const Login = () => {
   );
 };
 
-const FeatureItem = ({ icon: Icon, text, color, bg }: { icon: any, text: string, color: string, bg: string }) => (
-  <div className="flex items-center gap-3 p-3 rounded-xl bg-[#050A1F]/50 border border-blue-900/50">
-    <div className={`p-2 rounded-lg ${bg}`}>
-      <Icon className={`w-4 h-4 ${color}`} />
-    </div>
-    <span className="text-sm font-bold text-blue-200">{text}</span>
-  </div>
-)
