@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, updateProfile } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut as fbSignOut, updateProfile } from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, orderBy, getDocs, updateDoc, increment, serverTimestamp, limit } from "firebase/firestore";
 import firebaseConfig from '../../firebase-applet-config.json';
 
@@ -10,25 +10,9 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
   try {
-    const res = await signInWithPopup(auth, googleProvider);
-    const user = res.user;
-    
-    // Check if user exists in Firestore
-    const userRef = doc(db, 'users', user.uid);
-    const userSnap = await getDoc(userRef);
-    
-    if (!userSnap.exists()) {
-      await setDoc(userRef, {
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        balance: 0,
-        createdAt: serverTimestamp(),
-      });
-    }
-    return user;
+    await signInWithRedirect(auth, googleProvider);
   } catch (error) {
-    console.error("Error signing in with Google", error);
+    console.error("Error redirecting to Google sign in", error);
     throw error;
   }
 };

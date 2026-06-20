@@ -75,7 +75,7 @@ export const Login = () => {
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-red-400 text-sm font-medium text-center">
             {error}
             <div className="mt-2 text-xs text-blue-300">
-              Note: If login is popping up and closing instantly, it may be blocked by your browser's cross-site cookie settings in this preview iframe. Please explicitly open the preview in a new window using the "Open in new tab" icon at the top right of this panel.
+              Note: If login fails in an embedded preview, please explicitly open the preview in a new window using the "Open in new tab" icon.
             </div>
           </div>
         )}
