@@ -6,34 +6,34 @@ import { motion } from 'motion/react';
 
 export const Profile = () => {
   const { user, profile } = useAuth();
-  const [displayName, setDisplayName] = useState(profile?.name || user?.displayName || '');
+  const [displayName, setDisplayName] = useState(profile?.name || '');
   const [avatarPrompt, setAvatarPrompt] = useState('A cool pixel art cyberpunk character');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const [localPhoto, setLocalPhoto] = useState(profile?.photoURL || user?.photoURL || '');
+  const [localPhoto, setLocalPhoto] = useState(profile?.photoURL || '');
 
-  const handleGenerateAvatar = async () => {
-    if (!avatarPrompt) return;
-    setIsGenerating(true);
-    try {
-      const res = await fetch('/api/generate-avatar', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ prompt: avatarPrompt })
-      });
-      const data = await res.json();
-      if (data.imageUrl) {
-        setLocalPhoto(data.imageUrl);
-      } else {
-        alert(data.error || 'Failed to generate avatar');
-      }
-    } catch (e: any) {
-      alert('Error generating avatar: ' + e.message);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
     }
-    setIsGenerating(false);
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      alert('Image should be less than 2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setLocalPhoto(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveProfile = async () => {
@@ -78,21 +78,20 @@ export const Profile = () => {
             </div>
             
             <div className="w-full">
-              <label className="block text-xs font-bold text-blue-400 mb-1 uppercase tracking-wider">AI Avatar Prompt</label>
-              <textarea 
-                value={avatarPrompt}
-                onChange={e => setAvatarPrompt(e.target.value)}
-                className="w-full bg-[#0A102E] border border-blue-800 text-blue-50 rounded-lg p-3 text-sm focus:outline-none focus:border-cyan-500 resize-none h-20 mb-2"
-                placeholder="Describe your perfect avatar..."
-              />
-              <button
-                onClick={handleGenerateAvatar}
-                disabled={isGenerating || !avatarPrompt}
-                className="w-full flex items-center justify-center gap-2 bg-blue-900/50 hover:bg-blue-800 text-cyan-200 py-2 rounded-lg border border-blue-700/50 transition-colors disabled:opacity-50"
+              <label 
+                htmlFor="avatar-upload" 
+                className="w-full flex items-center justify-center gap-2 bg-blue-900/50 hover:bg-blue-800 text-cyan-200 py-2 rounded-lg border border-blue-700/50 transition-colors cursor-pointer"
               >
-                {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                {isGenerating ? 'Generating...' : 'Generate AI Avatar'}
-              </button>
+                <Camera className="w-4 h-4" />
+                Edit Profile Photo
+              </label>
+              <input 
+                id="avatar-upload" 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handleFileChange} 
+              />
             </div>
           </div>
 
@@ -111,7 +110,7 @@ export const Profile = () => {
               <label className="block text-xs font-bold text-blue-400 mb-1 uppercase tracking-wider">Email Address</label>
               <input 
                 type="email"
-                value={user.email || ''}
+                value={profile?.email || ''}
                 readOnly
                 className="w-full bg-[#0B1536] border border-blue-900/50 text-blue-300/50 rounded-lg p-4 focus:outline-none text-lg cursor-not-allowed"
               />

@@ -49,7 +49,7 @@ export const Withdraw = () => {
       const globalWithdrawalRef = collection(db, 'withdrawals');
       await addDoc(globalWithdrawalRef, {
         userId: user.uid,
-        userEmail: user.email,
+        userEmail: profile?.email || '',
         userName: profile.name,
         amount,
         inr: amount / 5,

@@ -229,48 +229,56 @@ export const Admin = () => {
                 </h3>
               </div>
 
-              <div className="relative mb-6">
-                <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-blue-500" />
-                <input
-                  type="text"
-                  placeholder="Search user by email..."
-                  value={searchEmail}
-                  onChange={e => setSearchEmail(e.target.value)}
-                  className="w-full bg-[#0A102E] border border-blue-800 rounded-xl pl-10 pr-4 py-3 text-blue-50 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
               <div className="grid gap-4">
-                {filteredUsers.map(u => (
-                  <div key={u.id} className="bg-blue-950/20 border border-blue-900/50 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div>
-                      <div className="font-bold text-white text-lg">{u.name || 'No Name'}</div>
-                      <div className="text-sm text-blue-400 font-mono">{u.email}</div>
-                      <div className="text-xs text-blue-500 mt-1">ID: {u.id}</div>
+                {users.map((u, idx) => (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    key={u.id} 
+                    className="bg-blue-950/20 border border-blue-900/50 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4 hover:border-cyan-500/30 transition-all duration-300 shadow-lg"
+                  >
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                      <div className="relative w-16 h-16 md:w-20 md:h-20 shrink-0">
+                        {u.photoURL ? (
+                          <img src={u.photoURL} alt="Avatar" className="w-full h-full object-cover rounded-full border-2 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center border-2 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                            <span className="text-2xl font-bold text-white">{u.name?.charAt(0) || 'U'}</span>
+                          </div>
+                        )}
+                        <div className="absolute -bottom-1 -right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-[#050B20]"></div>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-white text-lg md:text-xl truncate">{u.name || 'No Name'}</div>
+                        <div className="text-sm text-blue-400 font-mono truncate">{u.email || 'No email provided'}</div>
+                        <div className="text-xs text-blue-500 mt-1 truncate">ID: {u.id}</div>
+                      </div>
                     </div>
                     
-                    <div className="flex items-center gap-6 w-full md:w-auto">
-                      <div className="text-center">
-                        <div className="text-xs text-blue-300 font-bold uppercase">Balance</div>
-                        <div className="text-2xl font-black text-yellow-400">{u.balance || 0}</div>
+                    <div className="flex items-center gap-6 w-full md:w-auto border-t border-blue-900/30 md:border-none pt-4 md:pt-0 mt-2 md:mt-0">
+                      <div className="text-center px-4 md:border-r border-blue-900/50">
+                        <div className="text-xs text-blue-300 font-bold uppercase tracking-widest mb-1">Balance</div>
+                        <div className="text-2xl font-black text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.3)]">{u.balance || 0}</div>
                       </div>
                       
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
-                          placeholder="+/- Mod"
+                          placeholder="+ / - Mod"
                           onChange={e => setBalanceMod(Number(e.target.value))}
-                          className="w-24 bg-[#0A102E] border border-blue-800 rounded px-3 py-2 text-blue-50"
+                          className="w-24 bg-[#0A102E] border border-blue-800 rounded-lg px-3 py-2 text-blue-50 font-mono text-center focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
                         />
                         <button
                           onClick={() => handleModifyBalance(u.id, u.balance || 0)}
-                          className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded transition"
+                          className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold px-4 py-2 rounded-lg transition-all shadow-[0_0_10px_rgba(6,182,212,0.2)] active:scale-95"
                         >
                           Update
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </motion.div>
